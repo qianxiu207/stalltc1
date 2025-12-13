@@ -76,44 +76,57 @@
 ------------------------------------------------------------------------------------------------------------------
 
 
-# ⚙️ 环境变量配置 (Variables) --worker变量参数参考
+## ⚙️ 环境变量配置 (Environment Variables)
 
-- 您可以在 Cloudflare 后台 Settings -> Variables 中添加以下环境变量来覆盖默认配置。
-- 如果不设置，系统将使用代码中默认的兜底配置。
+您可以直接在 Cloudflare Worker/Pages 的 `Settings` -> `Variables` 中设置以下变量。
+> **注意**：如果未设置环境变量，系统将使用代码中内置的默认配置（兜底）。**为了安全，强烈建议设置密码相关的变量！**
 
-```
-🧱 基础配置
-变量名	说明	示例 / 默认值
-UUID	你的主 UUID (用户ID)	06b65903-406d-4a41-8463-6fd5c0ee7798
-WEB_PASSWORD	后台管理面板登录密码	yourpassword (不填则无密码/默认空)
-SUB_PASSWORD	订阅路径密码 (隐藏订阅地址)	my-secret-sub (访问 /my-secret-sub 获取订阅)
-PROXYIP	默认连接的优选域名/IP	cf.090227.xyz
-SUB_DOMAIN	真实上游订阅源地址	sub.cmliussss.net
-PS	节点名称备注/后缀	【专线】
-SUBAPI	订阅转换后端地址	https://subapi.cmliussss.net
+### 🧱 基础配置 (Basic Config)
 
-```
+| 变量名 | 说明 | 示例 / 默认值 |
+| :--- | :--- | :--- |
+| `UUID` | **主 UUID** (用户ID)，客户端连接凭证 | `06b65903-406d-4a41-8463-6fd5c0ee7798` |
+| `WEB_PASSWORD` | **后台登录密码** (如果不填则无法登录或默认空) | `yourpassword` |
+| `SUB_PASSWORD` | **订阅路径密码** (访问 `https://域名/密码` 获取订阅) | `my-secret-sub` |
+| `PROXYIP` | **默认优选域名/IP** (节点连接地址) | `cf.090227.xyz` |
+| `SUB_DOMAIN` | **真实订阅源** (上游优选订阅生成器地址) | `sub.cmliussss.net` |
+| `PS` | **节点备注** (显示在节点名称后) | `【专线】` |
+| `SUBAPI` | **订阅转换后端** (用于 Sing-box/Clash 转换) | `https://subapi.cmliussss.net` |
 
-🌍 节点来源 (支持多行/逗号分隔)
-变量名	说明	格式示例
-ADD	本地优选 IP 列表	1.1.1.1:443#美国, 2.2.2.2#香港 (支持换行)
-ADDAPI	远程 TXT 优选列表 API	https://example.com/ip.txt
-ADDCSV	远程 CSV 优选列表 API	https://example.com/ip.csv
+---
 
-🛡️ 安全与通知
-变量名	说明	示例
-TG_BOT_TOKEN	Telegram 机器人 Token	123456:ABC-DEF...
-TG_CHAT_ID	接收通知的 TG 用户 ID	123456789
-KEY	动态 UUID 开关/密钥	填 false 关闭；填任意字符串开启
-UUID_REFRESH	动态 UUID 刷新间隔 (秒)	86400 (默认1天)
-BJ_IP	静态黑名单 IP 列表	1.1.1.1,2.2.2.2 (英文逗号分隔)
-WL_IP	静态白名单 IP 列表	210.61.97.241 (免检 IP)
+### 🌍 节点来源配置 (Node Sources)
 
-💾 存储绑定变量名 (代码中已固定)
-变量名	类型	用途
-LH	KV	(推荐) 黑名单持久化、配置保存
-DR1	D1	(可选) 数据库备份存储
-RG2	R2	(可选) 对象存储备份
+| 变量名 | 说明 | 格式说明 |
+| :--- | :--- | :--- |
+| `ADD` | **本地优选 IP 列表** | 支持**换行**、**逗号**分隔。<br>例：`1.1.1.1:443#美国, 2.2.2.2#香港` |
+| `ADDAPI` | **远程 TXT 优选列表** | 填入 URL，格式同上 (一行一个 IP) |
+| `ADDCSV` | **远程 CSV 优选列表** | 填入 URL，支持高级节点信息导入 |
+
+---
+
+### 🛡️ 安全与通知 (Security & Notify)
+
+| 变量名 | 说明 | 示例 / 默认值 |
+| :--- | :--- | :--- |
+| `TG_BOT_TOKEN` | **Telegram 机器人 Token** (用于发送通知) | `123456:ABC-DEF...` |
+| `TG_CHAT_ID` | **Telegram 用户 ID** (接收通知的账号) | `123456789` |
+| `KEY` | **动态 UUID 开关** | 填 `false` 关闭；填任意字符串 (如 `secret`) 开启 |
+| `UUID_REFRESH` | **动态 UUID 刷新间隔** (单位：秒) | `86400` (默认 1 天) |
+| `BJ_IP` | **静态黑名单 IP** (永久禁止访问) | `1.1.1.1, 2.2.2.2` (英文逗号分隔) |
+| `WL_IP` | **静态白名单 IP** (免检，视为管理员) | `210.61.97.241` (英文逗号分隔) |
+
+---
+
+### 💾 存储绑定变量名 (Bindings)
+
+> **注意**：请在 `Settings` -> `Variables` -> `KV Namespace Bindings` (或 D1/R2) 中绑定，**变量名必须完全一致**。
+
+| 变量名 | 类型 | 必选 | 用途 |
+| :--- | :--- | :--- | :--- |
+| **`LH`** | **KV** | **推荐** | 用于**持久化保存黑名单 IP**、Cloudflare API 统计配置。如果不绑定，重启后黑名单会丢失。 |
+| `DR1` | D1 | 可选 | 数据库备份存储接口 (预留) |
+| `RG2` | R2 | 可选 | 对象存储备份接口 (预留) |
 
 
 
