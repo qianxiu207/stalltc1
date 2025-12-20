@@ -1052,54 +1052,72 @@ export default {
 
           const requestProxyIp = url.searchParams.get('proxyip') || _PROXY_IP;
           const pathParam = requestProxyIp ? "/proxyip=" + requestProxyIp : "/";
-          const subUrl = `https://${_SUB_DOMAIN}/sub?uuid=${_UUID}&encryption=none&security=tls&sni=${host}&alpn=h3&fp=random&allowInsecure=1&type=ws&host=${host}&path=${encodeURIComponent(pathParam)}`;
-
-          // 🟢 修复点：移除了重复定义的 UA_L，直接使用顶层变量，避免 TDZ 报错
-          if (UA_L.includes('sing-box') || UA_L.includes('singbox') || UA_L.includes('clash') || UA_L.includes('meta')) {
-              const type = (UA_L.includes('clash') || UA_L.includes('meta')) ? 'clash' : 'singbox';
-              const config = type === 'clash' ? CLASH_CONFIG : SINGBOX_CONFIG_V12;
-              const subApi = `${_CONVERTER}/sub?target=${type}&url=${encodeURIComponent(subUrl)}&config=${encodeURIComponent(config)}&emoji=true&list=false&sort=false&fdn=false&scv=false`;
-              try {
-                  const res = await fetch(subApi);
-                  return new Response(res.body, { status: 200, headers: res.headers });
-              } catch(e) {}
-          }
-
-          try {
-            // 🛡️ 修复漏洞：防止 SUB_DOMAIN 设置为自己时导致的无限循环
-            if (host.toLowerCase() !== _SUB_DOMAIN.toLowerCase()) {
-                const res = await fetch(subUrl, { headers: { 'User-Agent': UA } });
-                if (res.ok) {
-                    let body = await res.text();
-                    if (_PS) {
-                        try {
-                            const decoded = atob(body); 
-                            const modified = decoded.split('\n').map(line => {
-                                line = line.trim();
-                                if (!line || !line.includes('://')) return line;
-                                if (line.includes('#')) return line + encodeURIComponent(` ${_PS}`);
-                                return line + '#' + encodeURIComponent(_PS);
-                            }).join('\n');
-                            body = btoa(modified); 
-                        } catch(e) {
-                             if(body.includes('://')) {
-                                 body = body.split('\n').map(line => {
-                                     line = line.trim();
-                                     if (!line || !line.includes('://')) return line;
-                                     if (line.includes('#')) return line + encodeURIComponent(` ${_PS}`);
-                                     return line + '#' + encodeURIComponent(_PS);
-                                 }).join('\n');
-                             }
-                        }
-                    }
-                    return new Response(body, { status: 200, headers: res.headers });
-                }
-            }
-        } catch(e) {}
-
+          
+          // 🛡️ 修复点：检查 SUB_DOMAIN 是否有效，避免非法 URL
+          let hasValidSubDomain = _SUB_DOMAIN && _SUB_DOMAIN.trim() !== "" && _SUB_DOMAIN !== host;
+          
+          // 🟢 优化逻辑：优先处理本地 ADD 内容，确保纯本地模式正常工作
           const allIPs = await getCustomIPs(env);
-          const listText = genNodes(host, _UUID, requestProxyIp, allIPs, _PS);
-          return new Response(btoa(unescape(encodeURIComponent(listText))), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          const hasLocalNodes = allIPs && allIPs.trim() !== "";
+          
+          // 如果配置了有效的远程订阅源，尝试获取远程内容
+          if (hasValidSubDomain) {
+              const subUrl = `https://${_SUB_DOMAIN}/sub?uuid=${_UUID}&encryption=none&security=tls&sni=${host}&alpn=h3&fp=random&allowInsecure=1&type=ws&host=${host}&path=${encodeURIComponent(pathParam)}`;
+
+              // 🟢 修复点：移除了重复定义的 UA_L，直接使用顶层变量，避免 TDZ 报错
+              if (UA_L.includes('sing-box') || UA_L.includes('singbox') || UA_L.includes('clash') || UA_L.includes('meta')) {
+                  const type = (UA_L.includes('clash') || UA_L.includes('meta')) ? 'clash' : 'singbox';
+                  const config = type === 'clash' ? CLASH_CONFIG : SINGBOX_CONFIG_V12;
+                  const subApi = `${_CONVERTER}/sub?target=${type}&url=${encodeURIComponent(subUrl)}&config=${encodeURIComponent(config)}&emoji=true&list=false&sort=false&fdn=false&scv=false`;
+                  try {
+                      const res = await fetch(subApi);
+                      return new Response(res.body, { status: 200, headers: res.headers });
+                  } catch(e) {
+                      // 转换器失败时，继续尝试直接获取远程订阅
+                  }
+              }
+
+              try {
+                  const res = await fetch(subUrl, { headers: { 'User-Agent': UA } });
+                  if (res.ok) {
+                      let body = await res.text();
+                      if (_PS) {
+                          try {
+                              const decoded = atob(body); 
+                              const modified = decoded.split('\n').map(line => {
+                                  line = line.trim();
+                                  if (!line || !line.includes('://')) return line;
+                                  if (line.includes('#')) return line + encodeURIComponent(` ${_PS}`);
+                                  return line + '#' + encodeURIComponent(_PS);
+                              }).join('\n');
+                              body = btoa(modified); 
+                          } catch(e) {
+                               if(body.includes('://')) {
+                                   body = body.split('\n').map(line => {
+                                       line = line.trim();
+                                       if (!line || !line.includes('://')) return line;
+                                       if (line.includes('#')) return line + encodeURIComponent(` ${_PS}`);
+                                       return line + '#' + encodeURIComponent(_PS);
+                                   }).join('\n');
+                               }
+                          }
+                      }
+                      return new Response(body, { status: 200, headers: res.headers });
+                  }
+              } catch(e) {
+                  // 远程订阅失败时，继续处理本地节点
+              }
+          }
+          
+          // 🟢 修复点：确保即使远程订阅失败，也能返回本地节点
+          // 如果没有有效的远程订阅源或远程订阅失败，返回本地节点
+          if (hasLocalNodes) {
+              const listText = genNodes(host, _UUID, requestProxyIp, allIPs, _PS);
+              return new Response(btoa(unescape(encodeURIComponent(listText))), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          }
+          
+          // 如果既没有远程订阅源也没有本地节点，返回空订阅
+          return new Response(btoa(""), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
 
       // 🟢 常规订阅 /sub
