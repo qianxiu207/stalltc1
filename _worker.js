@@ -6,7 +6,7 @@ import { connect } from 'cloudflare:sockets';
 const UUID = "2dd002b8-f0e3-4ed7-b47d-cf133443073c"; // 修改可用的uuid
 const WEB_PASSWORD = "";  //自己要修改自定义的登录密码
 const SUB_PASSWORD = "";  // 自己要修改自定义的订阅密码
-const DEFAULT_PROXY_IP = "ProxyIP.US.CMLiussss.net";  //可修改自定义的proxyip
+const DEFAULT_PROXY_IP = "";  //可修改自定义的proxyip
 
 const TG_GROUP_URL = "";   //可修改自定义内容
 const TG_CHANNEL_URL = "";  //可此修改自定义内容
