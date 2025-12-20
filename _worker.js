@@ -318,67 +318,169 @@ function loginPage(tgGroup, tgChannel) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Login</title>
+    <title>系统访问控制</title>
     <style>
-        body { background: linear-gradient(135deg, #0f4c75 0%, #3282b8 50%, #bbe1fa 100%);
-        color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --glass: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
-        .glass-box { background: rgba(16, 32, 60, 0.6); backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        text-align: center; width: 320px; }
-        h2 { margin-top: 0; margin-bottom: 20px; font-weight: 600;
-        letter-spacing: 1px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 8px;
+        body {
+            margin: 0; padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            overflow: hidden;
         }
-        h2::before { content: '🔒'; font-size: 1.2rem;
+        /* 动态背景装饰 */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out;
         }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(30, 45, 70, 0.6); color: white; box-sizing: border-box; text-align: center; font-size: 0.95rem;
-        outline: none; transition: 0.3s; }
-        input:focus { border-color: #3282b8;
-        background: rgba(30, 45, 70, 0.9); }
-        input::placeholder { color: #8ba0b3;
+        .orb-1 { width: 300px; height: 300px; background: #4f46e5; top: -50px; left: -50px; animation-delay: 0s; }
+        .orb-2 { width: 250px; height: 250px; background: #06b6d4; bottom: -50px; right: -50px; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 30px); }
         }
-        .btn-group { display: flex; flex-direction: column; gap: 10px;
+
+        .login-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            transform: translateY(0);
+            transition: transform 0.3s;
         }
-        button { width: 100%; padding: 12px; border-radius: 6px; border: none; cursor: pointer;
-        font-size: 0.95rem; transition: 0.2s; font-weight: 600; }
-        .btn-primary { background: linear-gradient(90deg, #3282b8, #0f4c75);
-        color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
-        .btn-primary:hover { opacity: 0.9;
-        transform: translateY(-1px); }
-        .btn-unlock { background: linear-gradient(90deg, #a29bfe, #6c5ce7); color: white; margin-top: 5px;
+        .login-card:hover { transform: translateY(-5px); }
+        
+        .icon-lock {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #4f46e5, #06b6d4);
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-block;
         }
-        .btn-unlock:hover { opacity: 0.9; transform: translateY(-1px);
+
+        h2 { margin: 0 0 5px 0; font-size: 1.5rem; font-weight: 700; }
+        p { margin: 0 0 25px 0; color: #94a3b8; font-size: 0.9rem; }
+
+        .input-group { position: relative; margin-bottom: 20px; }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+            box-sizing: border-box;
+            text-align: center;
+            letter-spacing: 2px;
         }
-        .social-links { margin-top: 25px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: rgba(15, 23, 42, 0.8);
         }
-        .pill { background: rgba(0, 0, 0, 0.3); padding: 6px 12px; border-radius: 20px;
-        color: #dcdde1; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; transition: 0.2s;
-        border: 1px solid rgba(255, 255, 255, 0.1); }
-        .pill:hover { background: rgba(255, 255, 255, 0.1);
-        border-color: #3282b8; color: white; }
+        input::placeholder { color: #64748b; letter-spacing: normal; }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+        button:active { transform: scale(0.98); }
+
+        .footer-links {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .link-pill {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            transition: 0.2s;
+        }
+        .link-pill:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
     </style>
 </head>
 <body>
-    <div class="glass-box">
-        <h2>禁止进入</h2>
-        <input type="password" id="pwd" placeholder="请输入密码" autofocus autocomplete="new-password" onkeypress="if(event.keyCode===13)verify()">
-        <div class="btn-group">
-
-            <button class="btn-unlock" onclick="verify()">解锁后台</button>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    
+    <div class="login-card">
+        <div class="icon-lock">🛡️</div>
+        <h2>访问受限</h2>
+        <p>请输入管理员密钥以继续</p>
+        
+        <div class="input-group">
+            <input type="password" id="pwd" placeholder="Password" autofocus onkeypress="if(event.keyCode===13)verify()">
         </div>
+        
+        <button onclick="verify()">验证并进入</button>
 
+        <div class="footer-links">
+            ${tgGroup ? `<a href="${tgGroup}" class="link-pill" target="_blank">✈️ 群组</a>` : ''}
+            ${tgChannel ? `<a href="${tgChannel}" class="link-pill" target="_blank">📢 频道</a>` : ''}
+        </div>
     </div>
-    <script>
 
+    <script>
         function verify(){
             const p = document.getElementById("pwd").value;
             if(!p) return;
-            document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-            document.cookie = "auth=" + p + "; path=/; SameSite=Lax";
+            const btn = document.querySelector('button');
+            btn.innerHTML = '验证中...';
+            btn.style.opacity = '0.8';
+            
+            // 写入 Cookie
+            document.cookie = "auth=" + p + "; path=/; Max-Age=31536000; SameSite=Lax";
             sessionStorage.setItem("is_active", "1");
-            location.reload();
+            
+            setTimeout(() => {
+                location.reload();
+            }, 300);
         }
+        // 清除旧会话逻辑
         window.onload = function() {
             if(!sessionStorage.getItem("is_active")) {
                 document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -391,327 +493,489 @@ function loginPage(tgGroup, tgChannel) {
 
 function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAuth, tgState, cfState) {
     const defaultSubLink = `https://${host}/${subpass}`;
-    const pathParam = proxyip ? "/proxyip=" + proxyip : "/";
-    const longLink = "";
     
-    // 安全转义函数
-    const safeVal = (str) => (str || '').replace(/"/g, '&quot;');
-
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker 控制台</title>
+    <title>Worker 管理控制台</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
-        body { display: none;
-        } 
-        :root { --bg: #121418; --card: #1e222a; --text: #e0e0e0; --border: #2a2f38;
-        --accent: #3498db; --green: #2ecc71; --red: #e74c3c; --input-bg: #15181e; --modal-bg: #1e222a;
+        :root {
+            --bg-color: #0b1120; /* 深蓝黑背景 */
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6; /* 蓝色高亮 */
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
         }
-        body.light { --bg: #f0f2f5; --card: #ffffff; --text: #333333; --border: #e0e0e0; --accent: #3498db;
-        --green: #27ae60; --red: #c0392b; --input-bg: #f9f9f9; --modal-bg: #ffffff; }
-        body.loaded { display: flex;
-        } 
-        body { background-color: var(--bg); color: var(--text);
-        font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 20px; justify-content: center; transition: 0.3s;
+        /* 亮色模式变量 */
+        body.light {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #cbd5e1;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
         }
-        .container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 20px;
-        }
-        .card { background-color: var(--card);
-        border-radius: 8px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px;
-        border-bottom: 1px solid var(--border); margin-bottom: 15px; }
-        .header-title { display: flex; align-items: center;
-        gap: 10px; font-size: 1.2rem; font-weight: 600; }
-        .header-title span { color: #f1c40f;
-        }
-        .tools { display: flex; gap: 10px;
-        }
-        .tool-btn { width: 40px; height: 40px; background: var(--input-bg); border: 1px solid var(--border);
-        color: var(--text); border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; position: relative;
-        }
-        .tool-btn:hover { border-color: var(--accent); background: #2b303b;
-        }
-        .tool-btn::before { content: attr(data-tooltip); position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%);
-        padding: 5px 10px; background: rgba(0,0,0,0.85); color: #fff; font-size: 12px; border-radius: 4px; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden;
-        transition: 0.2s; z-index: 10; }
-        .tool-btn:hover::before { opacity: 1; visibility: visible; bottom: -40px;
-        }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; position: absolute; top: 5px;
-        right: 5px; }
-        .status-dot.on { background-color: var(--green); box-shadow: 0 0 5px var(--green);
-        }
-        .status-dot.off { background-color: var(--red);
-        }
-        .status-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;
-        }
-        .circle-chart-box { background: var(--input-bg); border-radius: 8px; display: flex; flex-direction: column; align-items: center;
-        justify-content: center; padding: 25px; border: 1px dashed var(--border); }
-        .circle-ring { width: 100px;
-        height: 100px; border-radius: 50%; border: 8px solid var(--border); border-top-color: var(--green); margin-bottom: 15px; flex-shrink: 0;
-        }
-        .circle-val { font-size: 2.2rem; font-weight: bold; color: var(--green); line-height: 1; margin-bottom: 5px;
-        }
-        .circle-label { font-size: 0.85rem; color: #888; white-space: nowrap;
-        }
-        .info-list { display: flex; flex-direction: column; gap: 10px;
-        }
-        .info-item { background: var(--input-bg); padding: 12px 15px; border-radius: 6px; display: flex;
-        justify-content: space-between; align-items: center; font-size: 0.9rem; }
-        .info-val { font-family: monospace; color: var(--green);
-        }
-        .section-title { font-size: 0.95rem; color: var(--accent); margin-bottom: 10px; font-weight: 600; display: flex;
-        align-items: center; gap: 5px; }
-        .input-block { margin-bottom: 12px;
-        }
-        label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 6px;
-        }
-        input[type="text"], textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-        color: var(--text); padding: 12px; border-radius: 6px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; outline: none; transition: 0.2s; box-sizing: border-box;
-        }
-        input[type="text"]:focus, textarea:focus { border-color: var(--accent);
-        }
-        textarea { 
-            min-height: 100px; 
-            resize: vertical; 
-            overflow-y: auto; 
-            white-space: pre-wrap; /* 允许自动换行 */
-            word-wrap: break-word; /* 允许长单词换行 */
-            word-break: break-all; /* 强制断开长链接 */
-        }
-        .input-group-row { display: flex; gap: 10px;
-        }
-        .input-group-row input { flex: 1;
-        }
-        .btn-check { background: #1f3a52; color: #fff; border: 1px solid #2b303b;
-        padding: 0 15px; border-radius: 6px; cursor: pointer; white-space: nowrap; font-weight: bold;
-        }
-        .btn-check:hover { background: #2a4d6e;
-        }
-        .btn-copy { background: #1f3a52; color: #fff; border: 1px solid #2b303b;
-        padding: 0 15px; border-radius: 4px; cursor: pointer; }
-        .btn-main { flex: 2;
-        background: var(--green); color: #fff; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold;
-        }
-        .btn-test { flex: 1; background: #1f3a52; color: #fff; border: 1px solid #1e4a75;
-        padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .checkbox-row { display: flex;
-        justify-content: flex-end; align-items: center; gap: 5px; font-size: 0.85rem; color: #888; margin-bottom: 5px;
-        }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%;
-        height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center;
-        }
-        .modal.show { display: flex;
-        }
-        .modal-content { background: var(--modal-bg); padding: 25px; border-radius: 12px; width: 90%; max-width: 420px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid var(--border); }
-        .modal-head { display: flex;
-        justify-content: space-between; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem; align-items: center;
-        }
-        .modal-head span { display: flex; align-items: center; gap: 8px;
-        }
-        .close-btn { cursor: pointer; color: #888; font-size: 1.2rem;
-        }
-        .modal-btns { display: flex; gap: 10px; margin-top: 25px;
-        }
-        .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; border: none;
-        cursor: pointer; font-weight: bold; font-size: 0.95rem; color: white; transition: 0.2s;
-        }
-        .btn-valid { background: #2f80ed; } .btn-save { background: #f2994a;
-        } .btn-cancel { background: #e0e0e0; color: #333 !important; }
-        .log-box { font-family: monospace;
-        font-size: 0.8rem; max-height: 200px; overflow-y: auto; background: var(--input-bg); padding: 10px; border-radius: 4px;
-        }
-        /* 修复日志布局: Flex -> Grid / Flex Widths */
-        .log-entry { border-bottom: 1px solid var(--border); padding: 8px 0; display: flex; align-items: center; gap: 10px; }
-        .log-time { color: #888; width: 150px; flex-shrink: 0; font-size: 0.85rem; font-family: monospace; }
-        .log-ip { color: var(--text); width: 260px; flex-shrink: 0; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .log-loc { color: #888; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
-        .log-tag { width: 80px; text-align: center; background: #f39c12; color: white; padding: 2px 0; border-radius: 4px; font-size: 0.75rem; flex-shrink: 0; }
-        .log-tag.green { background: var(--green); }
 
-        .ban-table { width:100%; border-collapse: collapse; font-size:0.85rem;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease;
         }
-        .ban-table th, .ban-table td { text-align: left; padding: 8px;
-        border-bottom: 1px solid var(--border); }
-        .ban-table th { color: #888; font-weight: normal;
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
-        .btn-del { background: var(--red); color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;
-        font-size:0.75rem;}
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--green);
-        color: white; padding: 8px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; pointer-events: none;
+
+        /* 顶部导航 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
         }
-        .refresh-btn { width: 100%; background: #1f3a52; color: #64b5f6; border: 1px solid #1e4a75;
-        padding: 10px; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: 0.2s; font-weight:bold;
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        @media (max-width: 600px) { .status-grid { grid-template-columns: 1fr; } .input-group-row { flex-direction:column;
-        } }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--accent);
+        }
+
+        /* 状态概览区域 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* 仪表盘 */
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .gauge-svg {
+            transform: rotate(-90deg);
+            width: 120px;
+            height: 120px;
+        }
+        .gauge-circle-bg { fill: none; stroke: var(--card-border); stroke-width: 8; }
+        .gauge-circle-val { 
+            fill: none; 
+            stroke: var(--accent); 
+            stroke-width: 8; 
+            stroke-linecap: round; 
+            transition: stroke-dasharray 1s ease;
+        }
+        .gauge-text {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .gauge-label {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* 状态列表 */
+        .status-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+        }
+        .status-item {
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .status-label { font-size: 0.8rem; color: var(--text-secondary); }
+        .status-value { font-weight: 600; font-family: monospace; }
+        .status-value.green { color: var(--success); }
+        .status-value.blue { color: var(--accent); }
+
+        /* 输入框和按钮 */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            outline: none;
+            font-family: monospace;
+        }
+        input:focus { border-color: var(--accent); }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-icon { padding: 10px; width: 40px; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-primary); }
+        .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-icon.active { border-color: var(--success); color: var(--success); }
+        
+        /* 日志终端风格 */
+        .terminal-box {
+            background: #000;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.8rem;
+            height: 250px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+        .log-row {
+            display: flex;
+            gap: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid #111;
+        }
+        .log-time { color: #666; min-width: 130px; }
+        .log-ip { color: #a5b4fc; min-width: 120px; }
+        .log-loc { color: #86efac; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .log-tag { padding: 0 4px; border-radius: 2px; font-size: 0.75rem; }
+        .tag-sub { background: #064e3b; color: #6ee7b7; }
+        .tag-ban { background: #450a0a; color: #fca5a5; }
+
+        /* 封禁表格 */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--text-secondary); font-size: 0.85rem; padding: 10px; border-bottom: 1px solid var(--card-border); }
+        td { padding: 10px; border-bottom: 1px solid var(--card-border); font-family: monospace; }
+        
+        /* 模态框 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100;
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+        }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: var(--card-bg); width: 90%; max-width: 450px;
+            padding: 25px; border-radius: 16px; border: 1px solid var(--card-border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal.show .modal-content { transform: scale(1); }
+        
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        .close-icon { cursor: pointer; color: var(--text-secondary); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions button { flex: 1; justify-content: center; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--success); color: white; padding: 10px 24px; border-radius: 50px;
+            opacity: 0; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); font-weight: 600;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body id="mainBody">
     <div class="container">
-        <div class="card" style="padding: 15px 20px;">
-            <div class="header" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
-                <div class="header-title"><span>⚡</span> Worker 控制台</div>
-                <div class="tools">
-                    <button class="tool-btn" onclick="toggleTheme()" data-tooltip="切换黑/白主题">🌗</button>
-                    <button class="tool-btn" onclick="showModal('tgModal')" data-tooltip="添加bot机器人监控">
-                        🤖 <span class="status-dot ${tgState ? 'on' : 'off'}"></span>
-                    </button>
-                    <button class="tool-btn" onclick="showModal('cfModal')" data-tooltip="添加cloudflare API请求数统计">
-                        ☁️ <span class="status-dot ${cfState ? 'on' : 'off'}"></span>
-                    </button>
-                    <button class="tool-btn logout-btn" onclick="logout()" style="background:#c0392b;color:white" data-tooltip="退出登录">⏻</button>
-                </div>
+        <div class="header">
+            <div class="brand"><i class="ri-radar-fill"></i> Worker Panel</div>
+            <div class="header-controls">
+                <button class="btn btn-icon" onclick="toggleTheme()" title="切换主题"><i class="ri-contrast-line"></i></button>
+                <button class="btn btn-icon ${tgState ? 'active' : ''}" onclick="showModal('tgModal')" title="TG Bot 设置"><i class="ri-robot-2-line"></i></button>
+                <button class="btn btn-icon ${cfState ? 'active' : ''}" onclick="showModal('cfModal')" title="Cloudflare API 设置"><i class="ri-cloud-line"></i></button>
+                <button class="btn btn-icon" onclick="logout()" style="color:var(--danger); border-color:var(--danger)" title="退出"><i class="ri-shut-down-line"></i></button>
             </div>
         </div>
-        
-        <div class="card status-grid">
-            <div class="circle-chart-box">
-                <div class="circle-ring"></div>
-                <div class="circle-val" id="reqCount">...</div>
-                <div class="circle-label">Cloudflare 统计 / 今日请求</div>
+
+        <div class="card stats-grid">
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 36 36">
+                    <path class="gauge-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="gauge-circle-val" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="gauge-text" id="reqCount">0</div>
+                <div class="gauge-label">今日请求</div>
             </div>
-            <div style="display:flex; flex-direction:column; justify-content:center;">
-                <div class="info-list">
-                    <div class="info-item"><span style="color:#888">Cloudflare API</span><span class="info-val" id="apiStatus" style="color: #64b5f6;">Check...</span></div>
-                    <div class="info-item"><span style="color:#888">Google (连通)</span><span class="info-val" id="googleStatus">Check...</span></div>
-                    <div class="info-item"><span style="color:#888">当前 IP</span><span class="info-val" id="currentIp" style="font-size:0.8rem">...</span></div>
-                    <div class="info-item"><span style="color:#888">DB/KV 状态</span><span class="info-val" id="kvStatus">...</span></div>
+            
+            <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="status-list">
+                    <div class="status-item">
+                        <span class="status-label"><i class="ri-google-fill"></i> Google 连通性</span>
+                        <span class="status-value" id="googleStatus">Testing...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label"><i class="ri-database-2-fill"></i> 数据库状态</span>
+                        <span class="status-value blue" id="kvStatus">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label"><i class="ri-map-pin-user-fill"></i> 当前 IP</span>
+                        <span class="status-value" id="currentIp" style="font-size:0.75rem">...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label"><i class="ri-cloud-windy-fill"></i> API 模式</span>
+                        <span class="status-value" id="apiStatus">Internal</span>
+                    </div>
                 </div>
-                <button class="refresh-btn" onclick="updateStats()">🔄 刷新状态</button>
+                <button class="btn btn-primary" onclick="updateStats()" style="margin-top:15px; width:100%; justify-content:center">
+                    <i class="ri-refresh-line"></i> 刷新所有状态
+                </button>
             </div>
         </div>
 
         <div class="card">
-            <div class="section-title">🚀 通用订阅链接 (仅上游)</div>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="text" id="autoSub" value="${defaultSubLink}" readonly style="flex:1">
-                <button class="btn-copy" onclick="copyId('autoSub')">复制</button>
+            <div class="section-title"><i class="ri-link-m"></i> 快速订阅链接</div>
+            <div class="input-wrapper">
+                <input type="text" id="autoSub" value="${defaultSubLink}" readonly onclick="this.select()">
+                <button class="btn btn-primary" onclick="copyId('autoSub')"><i class="ri-file-copy-line"></i> 复制</button>
             </div>
-
-
         </div>
-
-
 
         <div class="card">
             <div class="section-title" style="justify-content:space-between">
-                <span>🚫 黑名单 IP 管理</span>
-                <button class="tool-btn" onclick="loadBans()" style="width:auto;padding:6px 12px;font-size:0.8rem">刷新</button>
+                <span><i class="ri-spam-3-line"></i> IP 黑名单管理</span>
+                <span style="font-size:0.8rem; color:var(--text-secondary)" id="banCount">0 个</span>
             </div>
-           <div class="input-group-row" style="margin-bottom:10px">
-                <input type="text" id="newBanIp" placeholder="输入 IP 地址">
-                <button class="btn-check" onclick="addBan()">添加封禁</button>
+            <div class="input-wrapper">
+                <input type="text" id="newBanIp" placeholder="输入恶意 IP 地址 (例如 1.2.3.4)">
+                <button class="btn btn-danger" onclick="addBan()"><i class="ri-prohibited-line"></i> 封禁</button>
             </div>
-            <div style="max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:4px;">
-                <table class="ban-table">
-                    <thead><tr><th>IP 地址</th><th style="width:60px">操作</th></tr></thead>
-                    <tbody id="banListBody"><tr><td colspan="2" style="text-align:center">加载中...</td></tr></tbody>
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px;">
+                <table>
+                    <tbody id="banListBody">
+                        <tr><td style="text-align:center; color:#666">暂无数据</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
 
         <div class="card">
             <div class="section-title" style="justify-content:space-between">
-                <span>📋 操作日志 (DB/KV 4MB)</span>
-                <button class="tool-btn" onclick="loadLogs()" style="width:auto;padding:6px 12px;font-size:0.8rem">刷新</button>
+                <span><i class="ri-terminal-box-line"></i> 实时访问日志</span>
+                <button class="btn btn-icon" style="height:30px; width:30px; font-size:0.8rem" onclick="loadLogs()"><i class="ri-refresh-line"></i></button>
             </div>
-            <div class="log-box" id="logBox">Loading logs...</div>
+            <div class="terminal-box" id="logBox">
+                <div style="padding:10px; color:#666">Connecting to log stream...</div>
+            </div>
         </div>
     </div>
 
     <div id="tgModal" class="modal">
         <div class="modal-content">
-            <div class="modal-head"><span>🤖 Telegram 通知配置</span><span class="close-btn" onclick="closeModal('tgModal')">×</span></div>
-            <label>Bot Token</label>
-            <input type="text" id="tgToken" placeholder="123456:ABC-DEF...">
-            <label style="margin-top:10px">Chat ID</label>
-            <input type="text" id="tgId" placeholder="123456789">
-            <div class="modal-btns">
-                <button class="btn-valid" onclick="validateApi('tg')">可用性验证</button>
-                <button class="btn-save" onclick="saveConfig({TG_BOT_TOKEN: val('tgToken'), TG_CHAT_ID: val('tgId')}, 'tgModal')">保存</button>
-                <button class="btn-cancel" onclick="closeModal('tgModal')">取消</button>
+            <div class="modal-header">
+                <span><i class="ri-telegram-fill"></i> Telegram 通知配置</span>
+                <span class="close-icon" onclick="closeModal('tgModal')">×</span>
             </div>
-        </div>
-   </div>
-
-    <div id="cfModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-head"><span>☁️ Cloudflare 统计配置</span><span class="close-btn" onclick="closeModal('cfModal')">×</span></div>
-            <div style="margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px">
-                <label>方案1: Account ID + API Token</label>
-                <input type="text" id="cfAcc" placeholder="Account ID" style="margin-bottom:10px">
-                <input type="text" id="cfTok" placeholder="API Token (Read permission)">
+            <div style="display:flex; flex-direction:column; gap:15px">
+                <div>
+                    <label style="font-size:0.85rem; color:var(--text-secondary)">Bot Token</label>
+                    <input type="text" id="tgToken" placeholder="123456:ABC-DEF..." style="width:100%; box-sizing:border-box">
+                </div>
+                <div>
+                    <label style="font-size:0.85rem; color:var(--text-secondary)">Chat ID</label>
+                    <input type="text" id="tgId" placeholder="用户或群组 ID" style="width:100%; box-sizing:border-box">
+                </div>
             </div>
-            <label>方案2: Email + Global Key</label>
-            <input type="text" id="cfMail" placeholder="Email" style="margin-bottom:10px">
-            <input type="text" id="cfKey" placeholder="Global API Key">
-            <div class="modal-btns">
-                <button class="btn-valid" onclick="validateApi('cf')">可用性验证</button>
-                <button class="btn-save" onclick="saveConfig({CF_ID:val('cfAcc'), CF_TOKEN:val('cfTok'), CF_EMAIL:val('cfMail'), CF_KEY:val('cfKey')}, 'cfModal')">保存</button>
-                <button class="btn-cancel" onclick="closeModal('cfModal')">取消</button>
+            <div class="modal-actions">
+                <button class="btn" style="background:var(--card-border)" onclick="validateApi('tg')">测试</button>
+                <button class="btn btn-primary" onclick="saveConfig({TG_BOT_TOKEN: val('tgToken'), TG_CHAT_ID: val('tgId')}, 'tgModal')">保存配置</button>
             </div>
         </div>
     </div>
 
-    <div id="toast">已复制</div>
+    <div id="cfModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span><i class="ri-cloud-fill"></i> Cloudflare 统计 API</span>
+                <span class="close-icon" onclick="closeModal('cfModal')">×</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px">
+                <div style="padding:10px; background:rgba(59,130,246,0.1); border-radius:8px; font-size:0.85rem">
+                    推荐使用 Token 方式 (只需 Read 权限)
+                </div>
+                <input type="text" id="cfAcc" placeholder="Account ID" style="width:100%; box-sizing:border-box">
+                <input type="text" id="cfTok" placeholder="API Token" style="width:100%; box-sizing:border-box">
+                
+                <div style="position:relative; text-align:center; margin:10px 0">
+                    <span style="background:var(--card-bg); padding:0 10px; position:relative; z-index:1; color:#666; font-size:0.8rem">或使用 Global Key</span>
+                    <div style="position:absolute; top:50%; width:100%; height:1px; background:var(--card-border); z-index:0"></div>
+                </div>
+
+                <input type="text" id="cfMail" placeholder="Email Address" style="width:100%; box-sizing:border-box">
+                <input type="text" id="cfKey" placeholder="Global API Key" style="width:100%; box-sizing:border-box">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" style="background:var(--card-border)" onclick="validateApi('cf')">测试</button>
+                <button class="btn btn-primary" onclick="saveConfig({CF_ID:val('cfAcc'), CF_TOKEN:val('cfTok'), CF_EMAIL:val('cfMail'), CF_KEY:val('cfKey')}, 'cfModal')">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"><i class="ri-check-line"></i> 已复制到剪贴板</div>
 
     <script>
         const UUID = "${uuid}";
-        const CONVERTER = "${converter}";
-        const CLIENT_IP = "${clientIP}";
         const HAS_AUTH = ${hasAuth};
+        
+        // 初始化检查
         if (HAS_AUTH && !sessionStorage.getItem("is_active")) {
             document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
             window.location.reload();
-        } else {
-            document.body.classList.add('loaded');
         }
 
-        function val(id) { return document.getElementById(id).value;
-        }
-        function showModal(id) { document.getElementById(id).classList.add('show');
-        }
-        function closeModal(id) { document.getElementById(id).classList.remove('show');
+        // 工具函数
+        const val = (id) => document.getElementById(id).value;
+        const showModal = (id) => document.getElementById(id).classList.add('show');
+        const closeModal = (id) => document.getElementById(id).classList.remove('show');
+        
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerHTML = '<i class="ri-check-line"></i> ' + msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
         }
 
+        function copyId(id) {
+            const el = document.getElementById(id);
+            el.select();
+            navigator.clipboard.writeText(el.value).then(() => showToast('已复制'));
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+        }
+
+        // 核心逻辑
         async function updateStats() {
+            const el = document.getElementById('reqCount');
+            const circle = document.querySelector('.gauge-circle-val');
+            
+            // Google 检测
+            const start = Date.now();
             try {
-                const start = Date.now();
                 await fetch('https://www.google.com/generate_204', {mode: 'no-cors'});
-                document.getElementById('googleStatus').innerText = (Date.now() - start) + 'ms';
-            } catch (e) { document.getElementById('googleStatus').innerText = 'Timeout';
-            }
+                document.getElementById('googleStatus').innerHTML = '<span style="color:var(--success)">' + (Date.now() - start) + 'ms</span>';
+            } catch { document.getElementById('googleStatus').innerText = 'Timeout'; }
 
+            // 后端数据
             try {
                 const res = await fetch('?flag=stats');
                 const data = await res.json();
-                document.getElementById('reqCount').innerText = data.req;
-                document.getElementById('apiStatus').innerText = data.cfConfigured ? 'Connected' : 'Internal';
+                
+                // 仪表盘动画
+                const count = parseInt(data.req) || 0;
+                el.innerText = count;
+                // 假设日上限 10万次作为 100% 进度
+                const percent = Math.min((count / 100000) * 100, 100);
+                circle.style.strokeDasharray = \`\${percent}, 100\`;
+                circle.style.stroke = percent > 80 ? 'var(--danger)' : 'var(--accent)';
+
+                document.getElementById('apiStatus').innerText = data.cfConfigured ? 'Cloudflare API' : 'Internal Counter';
                 document.getElementById('currentIp').innerText = data.ip;
-                document.getElementById('kvStatus').innerText = data.hasKV ? 'D1/KV OK' : 'Missing';
-            } catch (e) { document.getElementById('reqCount').innerText = 'N/A';
-            }
+                document.getElementById('kvStatus').innerHTML = data.hasKV ? '<span style="color:var(--success)">Normal</span>' : '<span style="color:var(--warning)">No Storage</span>';
+            } catch (e) { el.innerText = 'Err'; }
         }
 
         async function loadLogs() {
+            const box = document.getElementById('logBox');
             try {
                 const res = await fetch('?flag=get_logs');
                 const data = await res.json();
                 let html = '';
+                
+                const renderLog = (time, ip, loc, action) => {
+                    let tagClass = '';
+                    if (action.includes('订阅')) tagClass = 'tag-sub';
+                    if (action.includes('封禁') || action.includes('Forbidden')) tagClass = 'tag-ban';
+                    
+                    return \`<div class="log-row">
+                        <span class="log-time">\${time.split(' ')[1] || time}</span>
+                        <span class="log-ip">\${ip}</span>
+                        <span class="log-loc">\${loc}</span>
+                        <span class="log-tag \${tagClass}">\${action}</span>
+                    </div>\`;
+                };
+
                 if (data.type === 'd1' && Array.isArray(data.logs)) {
-                    html = data.logs.map(log => \`<div class="log-entry"><span class="log-time">\${log.time}</span><span class="log-ip">\${log.ip}</span><span class="log-loc">\${log.region}</span><span class="log-tag \${log.action.includes('订阅')||log.action.includes('检测')?'green':''}">\${log.action}</span></div>\`).join('');
+                    html = data.logs.map(l => renderLog(l.time, l.ip, l.region, l.action)).join('');
                 } else if (data.logs && typeof data.logs === 'string') {
-                     html = data.logs.split('\\n').filter(x=>x).slice(0, 50).map(line => {
+                    html = data.logs.split('\\n').filter(x=>x).slice(0, 50).map(line => {
                         const p = line.split('|');
-                        return \`<div class="log-entry"><span class="log-time">\${p[0]}</span><span class="log-ip">\${p[1]}</span><span class="log-loc">\${p[2]}</span><span class="log-tag \${p[3].includes('订阅')||p[3].includes('检测')?'green':''}">\${p[3]}</span></div>\`;
+                        return renderLog(p[0], p[1], p[2], p[3]);
                     }).join('');
                 }
-                document.getElementById('logBox').innerHTML = html || '暂无日志';
-            } catch(e) { document.getElementById('logBox').innerText = '加载失败或未绑定 DB/KV'; }
+                box.innerHTML = html || '<div style="padding:10px;text-align:center;color:#666">暂无日志记录</div>';
+            } catch(e) { box.innerHTML = '加载日志失败'; }
         }
 
         async function loadBans() {
@@ -719,11 +983,17 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
                 const res = await fetch('?flag=get_bans');
                 const data = await res.json();
                 const list = data.list || [];
-                const html = list.length ?
-                list.map(ip => \`<tr><td>\${ip}</td><td><button class="btn-del" onclick="delBan('\${ip}')">删除</button></td></tr>\`).join('') : '<tr><td colspan="2" style="text-align:center">暂无封禁 IP</td></tr>';
+                document.getElementById('banCount').innerText = list.length + ' 个';
+                
+                const html = list.length ? list.map(ip => \`
+                    <tr>
+                        <td>\${ip}</td>
+                        <td style="width:50px; text-align:right">
+                            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem" onclick="delBan('\${ip}')">删除</button>
+                        </td>
+                    </tr>\`).join('') : '<tr><td colspan="2" style="text-align:center; padding:20px; color:var(--text-secondary)">暂无封禁记录</td></tr>';
                 document.getElementById('banListBody').innerHTML = html;
-            } catch(e) { document.getElementById('banListBody').innerHTML = '<tr><td colspan="2">加载失败</td></tr>';
-            }
+            } catch(e) {}
         }
 
         async function addBan() {
@@ -732,82 +1002,63 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
             try {
                 await fetch('?flag=add_ban', { method:'POST', body:JSON.stringify({ip}) });
                 document.getElementById('newBanIp').value = '';
+                showToast('已添加封禁');
                 loadBans();
             } catch(e) { alert('添加失败'); }
         }
 
         async function delBan(ip) {
             if(!confirm('确定解封 '+ip+'?')) return;
-            try { await fetch('?flag=del_ban', { method:'POST', body:JSON.stringify({ip}) }); loadBans(); } catch(e) { alert('删除失败');
-            }
+            try { 
+                await fetch('?flag=del_ban', { method:'POST', body:JSON.stringify({ip}) }); 
+                loadBans(); 
+                showToast('已解封');
+            } catch(e) { alert('删除失败'); }
+        }
+
+        async function validateApi(type) {
+            const btn = event.target;
+            const originText = btn.innerText;
+            btn.innerText = 'Checking...';
+            
+            const endpoint = type === 'tg' ? 'validate_tg' : 'validate_cf';
+            let payload = {};
+            if(type === 'tg') payload = { TG_BOT_TOKEN: val('tgToken'), TG_CHAT_ID: val('tgId') };
+            else payload = { CF_ID:val('cfAcc'), CF_TOKEN:val('cfTok'), CF_EMAIL:val('cfMail'), CF_KEY:val('cfKey') };
+            
+            try {
+                const res = await fetch('?flag=' + endpoint, { method:'POST', body:JSON.stringify(payload) });
+                const d = await res.json();
+                alert(d.msg || (d.success ? '验证通过' : '验证失败'));
+            } catch(e) { alert('请求错误'); }
+            
+            btn.innerText = originText;
         }
 
         async function saveConfig(data, modalId) {
             try {
                 await fetch('?flag=save_config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                alert('保存成功'); 
+                showToast('配置已保存'); 
                 if(modalId) closeModal(modalId);
-                setTimeout(() => location.reload(), 500);
-            } catch(e) { alert('保存失败: ' + e);
-            }
+                setTimeout(() => location.reload(), 1000);
+            } catch(e) { alert('保存失败: ' + e); }
         }
 
-
-        
-        async function validateApi(type) {
-            const endpoint = type === 'tg' ? 'validate_tg' : 'validate_cf';
-            let payload = {};
-            if(type === 'tg') payload = { TG_BOT_TOKEN: val('tgToken'), TG_CHAT_ID: val('tgId') };
-            else payload = { CF_ID:val('cfAcc'), CF_TOKEN:val('cfTok'), CF_EMAIL:val('cfMail'), CF_KEY:val('cfKey') };
-            try {
-                const res = await fetch('?flag=' + endpoint, { method:'POST', body:JSON.stringify(payload) });
-                const d = await res.json();
-                alert(d.msg || (d.success ? '验证通过' : '验证失败'));
-            } catch(e) { alert('请求错误');
-            }
+        function logout() {
+            document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+            sessionStorage.removeItem("is_active");
+            location.reload();
         }
 
-        function toggleTheme() { document.body.classList.toggle('light');
-        }
-
-        function updateLink() {
-            let base = document.getElementById('subDom').value.trim();
-            let host = document.getElementById('hostDom').value.trim();
-            let p = document.getElementById('pIp').value.trim();
-            let isClash = document.getElementById('clashMode').checked;
-            let path = p ? "/proxyip=" + p : "/";
-            const search = new URLSearchParams();
-            search.set('uuid', UUID); search.set('encryption', 'none'); search.set('security', 'tls'); search.set('sni', host); search.set('alpn', 'h3');
-            search.set('fp', 'random'); search.set('allowInsecure', '1'); search.set('type', 'ws'); search.set('host', host); search.set('path', path);
-            let finalUrl = \`https://\${base}/sub?\${search.toString()}\`;
-            if (isClash) {
-                let subUrl = CONVERTER + "/sub?target=clash&url=" + encodeURIComponent(finalUrl) + "&emoji=true&list=false&sort=false";
-                document.getElementById('finalLink').value = subUrl;
-            } else { document.getElementById('finalLink').value = finalUrl; }
-        }
-
-        function toggleClash() { updateLink();
-        }
-        function copyId(id) { const el = document.getElementById(id); el.select();
-        navigator.clipboard.writeText(el.value).then(() => { const t = document.getElementById('toast'); t.classList.add('show'); t.style.opacity=1; setTimeout(() => t.style.opacity=0, 2000); });
-        }
-        function checkProxy() { fetch('?flag=log_proxy_check'); window.open("${PROXY_CHECK_URL}", "_blank");
-        }
-        function logout() { document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-        sessionStorage.removeItem("is_active"); location.reload(); }
-
+        // 启动加载
         updateStats();
-        loadLogs(); 
-        loadBans(); 
-        updateLink();
-        
-        // 自动刷新日志（每3秒）
-        setInterval(loadLogs, 3000);
+        loadLogs();
+        loadBans();
+        setInterval(loadLogs, 5000); // 5秒刷新一次日志
     </script>
 </body>
 </html>`;
 }
-
 // 导出放在最后，确保所有函数都已定义
 export default {
   async fetch(r, env, ctx) { 
