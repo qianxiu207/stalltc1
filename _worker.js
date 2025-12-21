@@ -588,49 +588,74 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
             .stats-grid { grid-template-columns: 1fr; }
         }
 
-        /* 仪表盘 - 270度缺口风格 */ 
+        /* 仪表盘 - 实体轨道风格 */ 
          .gauge-container { 
+             position: relative; 
+             width: 140px; /* 固定容器宽度，防止不同客户端变形 */ 
+             height: 140px; 
+             margin: 0 auto 10px auto; /* 居中 */ 
+             display: flex; 
+             align-items: center; 
+             justify-content: center; 
+         } 
+         
+         /* 给整个仪表盘加一个极淡的圆形背景，增加“边界感” */ 
+         .gauge-container::before { 
+             content: ''; 
+             position: absolute; 
+             width: 100%; 
+             height: 100%; 
+             border-radius: 50%; 
+             background: var(--card-bg); /* 或者使用 rgba(0,0,0,0.03) */ 
+             box-shadow: inset 0 0 10px rgba(0,0,0,0.05); /* 内阴影增加立体感 */ 
+             z-index: 0; 
+         } 
+ 
+         .gauge-svg { 
+             transform: rotate(-90deg); 
+             width: 100%; 
+             height: 100%; 
+             z-index: 1; 
+         } 
+ 
+         .gauge-circle-bg { 
+             fill: none; 
+             stroke: var(--text-secondary); /* 使用更明显的颜色作为轨道 */ 
+             stroke-width: 2.5; /* 轨道稍微细一点 */ 
+             opacity: 0.15; /* 增加不透明度，让轨道清晰可见 */ 
+         } 
+ 
+         .gauge-circle-val { 
+             fill: none; 
+             stroke: var(--accent); 
+             stroke-width: 3.5; /* 进度条比轨道粗，形成层次感 */ 
+             stroke-linecap: round; 
+             transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+         } 
+ 
+         /* 居中文字容器 */ 
+         .gauge-data { 
+             position: absolute; 
              display: flex; 
              flex-direction: column; 
              align-items: center; 
              justify-content: center; 
-             position: relative; 
+             z-index: 2; 
          } 
-         .gauge-svg { 
-             /* 旋转 135度，让缺口朝下 */ 
-             transform: rotate(135deg); 
-             width: 120px; 
-             height: 120px; 
-         } 
-         .gauge-circle-bg { 
-             fill: none; 
-             stroke: var(--card-border); 
-             stroke-width: 4; 
-             stroke-linecap: round; 
-             /* 背景只显示 75% 的圆，留出缺口 */ 
-             stroke-dasharray: 75, 100; 
-         } 
-         .gauge-circle-val { 
-             fill: none; 
-             stroke: var(--accent); 
-             stroke-width: 4; 
-             stroke-linecap: round; 
-             transition: stroke-dasharray 1s ease; 
-             filter: drop-shadow(0 0 8px var(--accent)); 
-         } 
+ 
          .gauge-text { 
-             position: absolute; 
-             top: 50%; /* 调整文字位置 */ 
-             left: 50%; 
-             transform: translate(-50%, -50%); 
-             font-size: 1.8rem; 
+             /* 解决字体过大问题，使用 clamp 在不同屏幕自动缩放 */ 
+             font-size: clamp(1.2rem, 4vw, 1.8rem); 
              font-weight: 700; 
              color: var(--text-primary); 
+             line-height: 1.1; 
          } 
+ 
          .gauge-label { 
-             margin-top: -10px; /* 拉近文字和仪表盘的距离 */ 
+             font-size: 0.75rem; 
              color: var(--text-secondary); 
-             font-size: 0.8rem; 
+             margin-top: 2px; 
+             font-weight: 500; 
          }
 
         /* 状态列表 */
@@ -774,8 +799,10 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
                     <path class="gauge-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     <path class="gauge-circle-val" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                 </svg>
-                <div class="gauge-text" id="reqCount">0</div>
-                <div class="gauge-label">今日请求</div>
+                <div class="gauge-data">
+                    <div class="gauge-text" id="reqCount">0</div>
+                    <div class="gauge-label">今日请求</div>
+                </div>
             </div>
             
             <div style="display: flex; flex-direction: column; justify-content: space-between;">
