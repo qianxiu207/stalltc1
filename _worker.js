@@ -253,7 +253,7 @@ async function sendTgMsg(ctx, env, title, r, detail = "", isAdmin = false) {
   } catch(e) {}
 }
 
-const handle = (ws, pc, uuid) => {
+const handle = (ws, pc, uuid, backupProxyIP) => { // 🟢 传入备份代理IP
   const pool = new Pool();
   let s, w, r, inf, fst = true, rx = 0, stl = 0, cnt = 0, lact = Date.now(), con = false, rd = false, wt = false, tm = {}, pd = [], pb = 0, scr = 1.0, lck = Date.now(), lrx = 0, md = 'buf', asz = 0, tp = [], st = { t: 0, c: 0, ts: Date.now() };
   const upd = sz => {
