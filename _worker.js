@@ -588,38 +588,49 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
             .stats-grid { grid-template-columns: 1fr; }
         }
 
-        /* 仪表盘 */
-        .gauge-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        .gauge-svg {
-            transform: rotate(-90deg);
-            width: 120px;
-            height: 120px;
-        }
-        .gauge-circle-bg { fill: none; stroke: var(--card-border); stroke-width: 8; }
-        .gauge-circle-val { 
-            fill: none; 
-            stroke: var(--accent); 
-            stroke-width: 8; 
-            stroke-linecap: round; 
-            transition: stroke-dasharray 1s ease;
-        }
-        .gauge-text {
-            position: absolute;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        .gauge-label {
-            margin-top: 10px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
+        /* 仪表盘 - 霓虹细环风格 */ 
+         .gauge-container { 
+             display: flex; 
+             flex-direction: column; 
+             align-items: center; 
+             justify-content: center; 
+             position: relative; 
+             margin-bottom: 10px; 
+         } 
+         .gauge-svg { 
+             transform: rotate(-90deg); /* 从顶部开始 */ 
+             width: 140px; /* 稍微加大一点尺寸 */ 
+             height: 140px; 
+             filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5)); /* 整体发光 */ 
+         } 
+         .gauge-circle-bg { 
+             fill: none; 
+             stroke: var(--card-border); 
+             stroke-width: 3; /* 线条变细 */ 
+             opacity: 0.4; 
+         } 
+         .gauge-circle-val { 
+             fill: none; 
+             stroke: var(--accent); 
+             stroke-width: 3; /* 线条变细 */ 
+             stroke-linecap: round; /* 圆润的端点 */ 
+             transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1); 
+             filter: drop-shadow(0 0 6px var(--accent)); /* 进度条高亮发光 */ 
+         } 
+         .gauge-text { 
+             position: absolute; 
+             font-size: 2.2rem; 
+             font-weight: 800; 
+             color: var(--text-primary); 
+             text-shadow: 0 0 15px rgba(59, 130, 246, 0.3); 
+         } 
+         .gauge-label { 
+             margin-top: 5px; 
+             color: var(--text-secondary); 
+             font-size: 0.85rem; 
+             text-transform: uppercase; 
+             letter-spacing: 1px; 
+         }
 
         /* 状态列表 */
         .status-list {
