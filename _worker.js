@@ -1,5 +1,8 @@
 import { connect } from 'cloudflare:sockets';
 
+// 全局缓存 - 用于优化 checkBan 函数
+let BANS_CACHE = { data: new Set(), lastUpdate: 0 };
+
 // =============================================================================
 // 🟣 用户配置区域 (优先级环境变量-代码硬编码)           下方内容可改生效于内置代码 【不使用环境变量的情况下】
 // =============================================================================
@@ -77,56 +80,23 @@ async function incrementDailyStats(env) {
 // 🛡️ 洪水攻击检测 (优化版: 1分钟内限制15次) 
 async function checkFlood(env, ip) { 
     if (!env.DB) return false; 
-    
-    // 配置区域 
-    const LIMIT = 10;        // 限制次数 
-    const WINDOW = 60;       // 时间窗口 (秒) 
-    const CLEANUP_RATE = 0.05; // 清理概率 (5%) - 避免每次请求都执行删除操作 
-
+    const LIMIT = 15; 
+    const WINDOW = 60; 
     const now = Math.floor(Date.now() / 1000); 
 
     try { 
-        // 1. 获取当前 IP 的状态 
-        const { results } = await env.DB.prepare("SELECT count, updated_at FROM flood WHERE ip = ?").bind(ip).all(); 
-        
-        let newCount = 1; 
-        let windowStart = now; 
+        // 原子化操作：插入或更新。如果窗口期已过，重置 count 为 1 
+        const result = await env.DB.prepare(` 
+            INSERT INTO flood (ip, count, updated_at) 
+            VALUES (?, 1, ?) 
+            ON CONFLICT(ip) DO UPDATE SET 
+                count = CASE WHEN (? - updated_at) < ? THEN count + 1 ELSE 1 END, 
+                updated_at = CASE WHEN (? - updated_at) < ? THEN updated_at ELSE ? END 
+            RETURNING count 
+        `).bind(ip, now, now, WINDOW, now, WINDOW, now).first(); 
 
-        if (results && results.length > 0) { 
-            const row = results[0]; 
-            // 判断是否在当前时间窗口内 
-            if (now - row.updated_at < WINDOW) { 
-                // 在窗口内：累加计数，保持窗口起始时间不变 
-                newCount = row.count + 1; 
-                windowStart = row.updated_at; 
-            } else { 
-                // 窗口已过期：重置计数和时间 
-                newCount = 1; 
-                windowStart = now; 
-            } 
-        } 
-
-        // 2. 更新数据库 (使用 Upsert 避免并发错误) 
-        // 逻辑：如果不存在则插入，如果存在则更新 count 和 updated_at 
-        await env.DB.prepare(` 
-            INSERT INTO flood (ip, count, updated_at) VALUES (?, ?, ?) 
-            ON CONFLICT(ip) DO UPDATE SET count = ?, updated_at = ? 
-        `).bind(ip, newCount, windowStart, newCount, windowStart).run(); 
-
-        // 3. 概率性清理过期数据 (优化性能) 
-        // 只有 5% 的请求会触发清理，删除超过 2 分钟没活动的记录 
-        if (Math.random() < CLEANUP_RATE) { 
-            // 使用 waitUntil 让清理操作在后台运行，不阻塞当前请求返回 
-            const p = env.DB.prepare("DELETE FROM flood WHERE updated_at < ?").bind(now - (WINDOW * 2)).run().catch(()=>{}); 
-            // 注意：checkFlood 在主逻辑中被 await 调用，为了不报错这里即使不传 ctx 也可以直接忽略 promise， 
-            // 但如果你在 handle 里能传 ctx 进来最好，这里为了兼容原函数签名，直接触发异步即可。 
-        } 
-
-        // 4. 判断是否超过限制 
-        return newCount > LIMIT; 
-
-    } catch(e) { 
-        // 数据库出错时默认放行，避免误杀正常流量 
+        return result ? result.count > LIMIT : false; 
+    } catch (e) { 
         console.error("Flood check error:", e); 
         return false; 
     } 
@@ -134,12 +104,28 @@ async function checkFlood(env, ip) {
 
 // 🚫 封禁状态检查
 async function checkBan(env, ip) {
+    // 1. 内存缓存优化：每60秒才真正读一次数据库
+    const now = Date.now();
+    
+    // 仅在 DB 模式下使用缓存（LH 模式本身就是轻量级存储）
     if (env.DB) {
-        try {
-            const { results } = await env.DB.prepare("SELECT is_banned FROM bans WHERE ip = ?").bind(ip).all();
-            return results && results.length > 0 && results[0].is_banned === 1;
-        } catch(e) { return false; }
-    } else if (env.LH) {
+        // 检查缓存是否过期
+        if (now - BANS_CACHE.lastUpdate > 60000) {
+            try {
+                // 从数据库读取所有黑名单IP
+                const { results } = await env.DB.prepare("SELECT ip FROM bans WHERE is_banned = 1").all();
+                // 更新缓存
+                BANS_CACHE.data = new Set(results.map(r => r.ip));
+                BANS_CACHE.lastUpdate = now;
+            } catch (e) {
+                console.error("Update bans cache error:", e);
+            }
+        }
+        // 从缓存中检查IP
+        return BANS_CACHE.data.has(ip);
+    } 
+    // LH 模式直接查询
+    else if (env.LH) {
         try { return (await env.LH.get(`BAN_${ip}`)) === "1";
         } catch(e) { return false; }
     }
@@ -1147,7 +1133,14 @@ function dashPage(host, uuid, proxyip, subpass, converter, env, clientIP, hasAut
 }
 // 导出放在最后，确保所有函数都已定义
 export default {
-  async fetch(r, env, ctx) { 
+  async fetch(r, env, ctx) {
+    // 1. 随缘清理 (放在最前面，确保即使是被封禁的流量也能触发清理)
+    if (env.DB && Math.random() < 0.02) {
+        const now = Math.floor(Date.now() / 1000);
+        ctx.waitUntil(env.DB.prepare("DELETE FROM flood WHERE updated_at < ?").bind(now - 600).run());
+        ctx.waitUntil(env.DB.prepare("DELETE FROM logs WHERE id NOT IN (SELECT id FROM logs ORDER BY id DESC LIMIT 1000)").run());
+    }
+    
     try {
       const url = new URL(r.url);
       const host = url.hostname; 
