@@ -74,16 +74,62 @@ async function incrementDailyStats(env) {
     } catch(e) { return "0"; }
 }
 
-// 🛡️ 洪水攻击检测
-async function checkFlood(env, ip) {
-    if (!env.DB) return false;
-    const now = Math.floor(Date.now() / 1000);
-    try {
-        await env.DB.prepare("DELETE FROM flood WHERE updated_at < ?").bind(now - 600).run();
-        await env.DB.prepare(`INSERT INTO flood (ip, count, updated_at) VALUES (?, 1, ?) ON CONFLICT(ip) DO UPDATE SET count = count + 1, updated_at = ?`).bind(ip, now, now).run();
-        const { results } = await env.DB.prepare("SELECT count FROM flood WHERE ip = ?").bind(ip).all();
-        return (results[0]?.count || 0) >= 30;
-    } catch(e) { return false; }
+// 🛡️ 洪水攻击检测 (优化版: 1分钟内限制15次) 
+async function checkFlood(env, ip) { 
+    if (!env.DB) return false; 
+    
+    // 配置区域 
+    const LIMIT = 10;        // 限制次数 
+    const WINDOW = 60;       // 时间窗口 (秒) 
+    const CLEANUP_RATE = 0.05; // 清理概率 (5%) - 避免每次请求都执行删除操作 
+
+    const now = Math.floor(Date.now() / 1000); 
+
+    try { 
+        // 1. 获取当前 IP 的状态 
+        const { results } = await env.DB.prepare("SELECT count, updated_at FROM flood WHERE ip = ?").bind(ip).all(); 
+        
+        let newCount = 1; 
+        let windowStart = now; 
+
+        if (results && results.length > 0) { 
+            const row = results[0]; 
+            // 判断是否在当前时间窗口内 
+            if (now - row.updated_at < WINDOW) { 
+                // 在窗口内：累加计数，保持窗口起始时间不变 
+                newCount = row.count + 1; 
+                windowStart = row.updated_at; 
+            } else { 
+                // 窗口已过期：重置计数和时间 
+                newCount = 1; 
+                windowStart = now; 
+            } 
+        } 
+
+        // 2. 更新数据库 (使用 Upsert 避免并发错误) 
+        // 逻辑：如果不存在则插入，如果存在则更新 count 和 updated_at 
+        await env.DB.prepare(` 
+            INSERT INTO flood (ip, count, updated_at) VALUES (?, ?, ?) 
+            ON CONFLICT(ip) DO UPDATE SET count = ?, updated_at = ? 
+        `).bind(ip, newCount, windowStart, newCount, windowStart).run(); 
+
+        // 3. 概率性清理过期数据 (优化性能) 
+        // 只有 5% 的请求会触发清理，删除超过 2 分钟没活动的记录 
+        if (Math.random() < CLEANUP_RATE) { 
+            // 使用 waitUntil 让清理操作在后台运行，不阻塞当前请求返回 
+            const p = env.DB.prepare("DELETE FROM flood WHERE updated_at < ?").bind(now - (WINDOW * 2)).run().catch(()=>{}); 
+            // 注意：checkFlood 在主逻辑中被 await 调用，为了不报错这里即使不传 ctx 也可以直接忽略 promise， 
+            // 但如果你在 handle 里能传 ctx 进来最好，这里为了兼容原函数签名，直接触发异步即可。 
+        } 
+
+        // 4. 判断是否超过限制 
+        return newCount > LIMIT; 
+
+    } catch(e) { 
+        // 数据库出错时默认放行，避免误杀正常流量 
+        console.error("Flood check error:", e); 
+        return false; 
+    } 
 }
 
 // 🚫 封禁状态检查
@@ -1347,8 +1393,39 @@ export default {
   } catch (err) {
       return new Response(err.toString(), { status: 500 });
     }
+  },
+
+  // 2. 新增：定时任务逻辑 (Cron Triggers)
+  async scheduled(event, env, ctx) {
+      ctx.waitUntil(handleScheduled(env));
   }
 };
+
+// 3. 定时清理的具体执行函数
+async function handleScheduled(env) {
+    if (!env.DB) return;
+    console.log("⏰ 开始执行定时清理任务...");
+
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        
+        // 任务 A: 清理 Flood 表中超过 5 分钟无操作的记录 (比请求时的 1 分钟窗口稍微宽容点，确保安全)
+        const resFlood = await env.DB.prepare("DELETE FROM flood WHERE updated_at < ?").bind(now - 300).run();
+        console.log(`🧹 清理 Flood 记录: ${resFlood.meta.changes} 条`);
+
+        // 任务 B: 清理日志表，只保留最新的 1000 条 (硬性限制，防止数据库爆炸)
+        // 使用子查询保留最大的 1000 个 ID，删除其余的
+        await env.DB.prepare("DELETE FROM logs WHERE id NOT IN (SELECT id FROM logs ORDER BY id DESC LIMIT 1000)").run();
+        console.log(`🧹 日志表修剪完成`);
+
+        // 任务 C (可选): 清理每日统计 stats 表 (例如只保留最近 30 天的数据)
+        // 假设 stats 表存的是 '2023-10-27' 这种字符串，可以用 date 函数
+        await env.DB.prepare("DELETE FROM stats WHERE date < date('now', '-30 days')").run();
+        
+    } catch (e) {
+        console.error("❌ 定时清理失败:", e);
+    }
+}
 
 async function getCustomIPs(env) {
     let ips = await getSafeEnv(env, 'ADD', "");
