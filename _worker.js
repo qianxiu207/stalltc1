@@ -1238,7 +1238,12 @@ export default {
       }
 
       if (url.pathname === '/favicon.ico') return new Response(null, { status: 404 });
-      
+
+      // 🟢 伪装页面：根路径直接重定向到 Bing，增强隐蔽性
+      if (url.pathname === '/') {
+          return Response.redirect('https://www.bing.com', 302);
+      }
+
       // 🟢 API 接口
       const flag = url.searchParams.get('flag');
       if (flag) {
@@ -1386,35 +1391,40 @@ export default {
           return new Response(btoa(unescape(encodeURIComponent(listText))), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
 
-      // 🟢 面板逻辑 (HTTP)
+      // 🟢 面板逻辑 (HTTP) - 只有访问 /admin 才显示管理界面
       if (r.headers.get('Upgrade') !== 'websocket') {
-        const noCacheHeaders = { 
-            'Content-Type': 'text/html; charset=utf-8', 
+        // 非 /admin 路径的 HTTP 请求返回 404（WebSocket 代理不受影响）
+        if (url.pathname !== '/admin') {
+            return new Response('Not Found', { status: 404 });
+        }
+
+        const noCacheHeaders = {
+            'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'no-store',
-            'X-Frame-Options': 'DENY', 
+            'X-Frame-Options': 'DENY',
             'X-Content-Type-Options': 'nosniff',
             'Referrer-Policy': 'same-origin'
         };
-        
+
         let hasPassword = !!_WEB_PW;
         let isAuthorized = false;
         if (hasPassword) {
             const cookie = r.headers.get('Cookie') || "";
             const match = cookie.match(/auth=([^;]+)/);
             if (match && match[1] === _WEB_PW) isAuthorized = true;
-        } 
-          
+        }
+
         if (!isAuthorized) {
             return new Response(loginPage(TG_GROUP_URL, TG_CHANNEL_URL), { status: 200, headers: noCacheHeaders });
         }
 
           await sendTgMsg(ctx, env, "✅ 后台登录成功", r, "进入管理面板", true);
           ctx.waitUntil(logAccess(env, clientIP, `${city},${country}`, "登录后台"));
-          
+
           const tgState = !!(await getSafeEnv(env, 'TG_BOT_TOKEN', '')) && !!(await getSafeEnv(env, 'TG_CHAT_ID', ''));
           const cfState = (!!(await getSafeEnv(env, 'CF_ID', '')) && !!(await getSafeEnv(env, 'CF_TOKEN', ''))) ||
           (!!(await getSafeEnv(env, 'CF_EMAIL', '')) && !!(await getSafeEnv(env, 'CF_KEY', '')));
-          
+
           return new Response(dashPage(url.hostname, _UUID, _PROXY_IP, _SUB_PW, _CONVERTER, env, clientIP, hasPassword, tgState, cfState), { status: 200, headers: noCacheHeaders });
       }
       
