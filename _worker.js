@@ -7,7 +7,7 @@ const UUID = ""; // 默认 UUID
 const WEB_PASSWORD = "";  // 后台管理密码
 const SUB_PASSWORD = "";  // 订阅路径密码
 const DEFAULT_PROXY_IP = "";  // 默认回退 ProxyIP (单 IP 或域名)
-const ROOT_REDIRECT_URL = "https://www.google.com"; // 根路径重定向
+const ROOT_REDIRECT_URL = ""; // 根路径重定向
 
 // =============================================================================
 // ⚡️ 核心逻辑区 (无状态版)
