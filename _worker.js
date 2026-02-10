@@ -3,15 +3,15 @@ import { connect } from 'cloudflare:sockets';
 // =============================================================================
 // 🟣 用户配置区域 (优先级: 环境变量 > 代码硬编码)
 // =============================================================================
-const UUID = ""; // 默认 UUID
+const UUID = "06b65903-406d-4a41-8463-6fd5c0ee7798"; // 默认 UUID
 const WEB_PASSWORD = "";  // 自定义登录密码
 const SUB_PASSWORD = "";  // 自定义订阅路径密码
-const DEFAULT_PROXY_IP = "";  // 默认优选 IP
+const DEFAULT_PROXY_IP = "cf.090227.xyz";  // 默认优选 IP
 const ROOT_REDIRECT_URL = ""; // 根路径重定向地址
 const DEFAULT_CONVERTER = "https://subapi.cmliussss.net"; // 订阅转换后端
 const PROXY_CHECK_URL = "https://kaic.hidns.co/";
 
-// 协议类型 (代码内混淆，不显示在页面上)
+// 协议类型
 const PT_TYPE = 'v'+'l'+'e'+'s'+'s';
 
 // =============================================================================
@@ -150,313 +150,82 @@ const handle = (ws, pc, uuid, proxyIPList = []) => {
   ws.addEventListener('close', cln); ws.addEventListener('error', cln)
 };
 
-// 极简通用登录页
+// 简易登录页
 function loginPage() {
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verification</title>
+    <title>系统访问控制</title>
     <style>
-        :root { --bg: #09090b; --text: #fafafa; --border: #27272a; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { border: 1px solid var(--border); padding: 2rem; border-radius: 12px; text-align: center; width: 300px; }
-        input { width: 100%; padding: 12px; margin: 15px 0; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 6px; box-sizing: border-box; text-align: center; }
-        button { width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
+        body { font-family: sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 2rem; border-radius: 1rem; text-align: center; width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; text-align: center; }
+        button { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2563eb; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3>Identity Verification</h3>
-        <input type="password" id="pwd" placeholder="Enter Access Key" onkeypress="if(event.keyCode===13)verify()">
-        <button onclick="verify()">Verify</button>
+        <h3>访问受限</h3>
+        <input type="password" id="pwd" placeholder="输入密码" onkeypress="if(event.keyCode===13)verify()">
+        <button onclick="verify()">进入</button>
     </div>
     <script>
         function verify(){
             const p = document.getElementById("pwd").value;
             if(!p) return;
             document.cookie = "auth=" + p + "; path=/; Max-Age=31536000; SameSite=Lax";
-            location.reload();
+            setTimeout(() => location.reload(), 300);
         }
     </script>
 </body>
 </html>`;
 }
 
-// 现代化去敏控制面板 (Obsidian Style - Sanitized)
+// 极简管理页 (仅保留链接复制)
 function dashPage(host, uuid, proxyip, subpass) {
     const defaultSubLink = `https://${host}/${subpass}`;
-    const subLinkB64 = btoa(defaultSubLink);
-    
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Dashboard</title>
+    <title>Worker 订阅管理</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root {
-            --bg: #09090b;
-            --card: #18181b;
-            --border: #27272a;
-            --text: #e4e4e7;
-            --text-muted: #a1a1aa;
-            --primary: #ffffff;
-            --primary-fg: #09090b;
-            --hover: #27272a;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 20px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg);
-            /* 极简网格背景 */
-            background-image: linear-gradient(var(--border) 1px, transparent 1px),
-            linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 50px 50px;
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 480px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .header h1 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 0;
-            color: var(--primary);
-            letter-spacing: 0.5px;
-        }
-        .status-dot {
-            height: 8px; width: 8px;
-            background-color: #22c55e;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .input-wrapper {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-        input {
-            flex: 1;
-            background: #000;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px 14px;
-            color: var(--text);
-            font-family: monospace;
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input:focus { border-color: var(--text-muted); }
-
-        .btn {
-            background: var(--primary);
-            color: var(--primary-fg);
-            border: none;
-            border-radius: 6px;
-            padding: 0 18px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .btn:hover { opacity: 0.9; }
-
-        .qr-wrapper {
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            width: fit-content;
-            margin: 0 auto;
-        }
-        #qrcode img { display: block; }
-
-        /* 操作网格 - 隐晦描述 */
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .action-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
-            text-decoration: none;
-            color: var(--text-muted);
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        .action-card:hover {
-            background: var(--hover);
-            color: var(--primary);
-            border-color: var(--text-muted);
-        }
-        .action-card i { font-size: 1.2rem; margin-bottom: 4px; }
-        .action-card span { font-size: 0.8rem; }
-
-        .footer {
-            margin-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-        }
-        .logout {
-            background: transparent;
-            border: none;
-            color: #ef4444;
-            font-size: 0.8rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .id-tag {
-            font-family: monospace;
-            color: #52525b;
-            font-size: 0.75rem;
-        }
-
-        #toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(50px);
-            background: var(--primary);
-            color: var(--primary-fg);
-            padding: 8px 20px;
-            border-radius: 99px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            opacity: 0;
-            transition: all 0.3s;
-            pointer-events: none;
-        }
-        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
+        .card { background-color: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .title { font-size: 1.2rem; margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
+        button { padding: 10px 20px; border-radius: 8px; border: none; background: #3b82f6; color: white; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        .logout { margin-top: 20px; color: #ef4444; cursor: pointer; text-align: center; text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Network Panel</h1>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:0.75rem; color:#52525b">System Online</span>
-                <div class="status-dot"></div>
-            </div>
-        </div>
-
         <div class="card">
-            <span class="label">Access Link</span>
-            <div class="input-wrapper">
+            <div class="title"><i class="ri-link-m"></i> 快速订阅链接</div>
+            <div class="input-group">
                 <input type="text" id="subLink" value="${defaultSubLink}" readonly onclick="this.select()">
-                <button class="btn" onclick="copyLink()">Copy</button>
+                <button onclick="copy('subLink')">复制</button>
             </div>
-            <div class="qr-wrapper">
-                <div id="qrcode"></div>
-            </div>
+            <p style="color:#94a3b8; font-size:0.9rem">UUID: ${uuid}</p>
         </div>
-
-        <div class="grid">
-            <a href="clash://install-config?url=${encodeURIComponent(defaultSubLink)}" class="action-card">
-                <i class="ri-equalizer-line"></i>
-                <span>Import Profile A</span>
-            </a>
-            <a href="shadowrocket://add/sub://${subLinkB64}" class="action-card">
-                <i class="ri-flashlight-line"></i>
-                <span>Import Profile B</span>
-            </a>
-            <a href="https://github.com/2dust/v2rayNG/releases" target="_blank" class="action-card">
-                <i class="ri-android-line"></i>
-                <span>Get Client Tool (A)</span>
-            </a>
-            <a href="https://github.com/SagerNet/sing-box/releases" target="_blank" class="action-card">
-                <i class="ri-box-3-line"></i>
-                <span>Get Client Tool (U)</span>
-            </a>
-        </div>
-
-        <div class="footer">
-            <span class="id-tag">ID: ${uuid.substring(0,8)}...</span>
-            <button class="logout" onclick="logout()">
-                <i class="ri-logout-box-r-line"></i> Logout
-            </button>
-        </div>
+        <div class="logout" onclick="logout()">退出登录</div>
     </div>
-
-    <div id="toast">Copied to clipboard</div>
-
     <script>
-        new QRCode(document.getElementById("qrcode"), {
-            text: "${defaultSubLink}",
-            width: 120,
-            height: 120,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
-        });
-
-        function copyLink() {
-            const el = document.getElementById('subLink');
+        function copy(id) {
+            const el = document.getElementById(id);
             el.select();
-            navigator.clipboard.writeText(el.value).then(() => showToast());
+            navigator.clipboard.writeText(el.value).then(() => alert('已复制'));
         }
-
         function logout() {
-            if(confirm('Disconnect?')) {
-                document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-                location.reload();
-            }
-        }
-
-        function showToast() {
-            const t = document.getElementById('toast');
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
+            document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+            location.reload();
         }
     </script>
 </body>
