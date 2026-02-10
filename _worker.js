@@ -183,172 +183,283 @@ function loginPage() {
 </html>`;
 }
 
-// 极简管理页 (仅保留链接复制)
+// 美化版管理面板 - 包含二维码、客户端下载和毛玻璃特效
 function dashPage(host, uuid, proxyip, subpass) {
     const defaultSubLink = `https://${host}/${subpass}`;
+    const subLinkB64 = btoa(defaultSubLink); // 用于部分一键导入
+    
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker 订阅管理</title>
+    <title>StallTCP Lite - 订阅管理</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
-        .card { background-color: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .title { font-size: 1.2rem; margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
-        button { padding: 10px 20px; border-radius: 8px; border: none; background: #3b82f6; color: white; cursor: pointer; }
-        button:hover { background: #2563eb; }
-        .logout { margin-top: 20px; color: #ef4444; cursor: pointer; text-align: center; text-decoration: underline; }
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* 毛玻璃卡片 */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); }
+
+        .header { text-align: center; margin-bottom: 20px; }
+        .logo-icon { 
+            font-size: 3rem; 
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
+
+        /* 输入框区域 */
+        .field-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display: block; }
+        .input-group {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 4px;
+            transition: border-color 0.3s;
+        }
+        .input-group:focus-within { border-color: var(--primary); }
+        
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 0.95rem;
+            outline: none;
+            min-width: 0;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-copy { background: #334155; color: white; margin: 4px; }
+        .btn-copy:hover { background: #475569; }
+
+        /* 二维码区域 */
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glass-border);
+        }
+        #qrcode {
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+        #qrcode img { display: block; }
+
+        /* 快捷操作区 */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            padding: 12px;
+            border-radius: 12px;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .action-btn i { font-size: 1.2rem; color: var(--text-main); }
+        .action-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-main); transform: translateY(-2px); }
+
+        /* 底部信息 */
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .btn-logout {
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Toast 提示 */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(50px);
+            background: #10b981;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
+
     <div class="container">
+        <div class="header">
+            <i class="ri-radar-fill logo-icon"></i>
+            <h1 class="title">StallTCP Lite</h1>
+            <p class="subtitle">无状态 · 轻量级 · 节点订阅管理</p>
+        </div>
+
         <div class="card">
-            <div class="title"><i class="ri-link-m"></i> 快速订阅链接</div>
+            <label class="field-label">通用订阅链接 (Clash / Sing-box / V2ray)</label>
             <div class="input-group">
                 <input type="text" id="subLink" value="${defaultSubLink}" readonly onclick="this.select()">
-                <button onclick="copy('subLink')">复制</button>
+                <button class="btn btn-copy" onclick="copyLink()"><i class="ri-file-copy-line"></i> 复制</button>
             </div>
-            <p style="color:#94a3b8; font-size:0.9rem">UUID: ${uuid}</p>
+            
+            <div class="qr-section">
+                <label class="field-label" style="margin-bottom:0">扫码订阅</label>
+                <div id="qrcode"></div>
+            </div>
         </div>
-        <div class="logout" onclick="logout()">退出登录</div>
+
+        <div class="card">
+            <label class="field-label">快捷导入 & 客户端下载</label>
+            <div class="actions-grid">
+                <a href="clash://install-config?url=${encodeURIComponent(defaultSubLink)}" class="action-btn">
+                    <i class="ri-speed-mini-fill"></i> 导入 Clash
+                </a>
+                <a href="shadowrocket://add/sub://${subLinkB64}" class="action-btn">
+                    <i class="ri-rocket-2-fill"></i> 导入 Shadowrocket
+                </a>
+                <a href="https://github.com/2dust/v2rayNG/releases" target="_blank" class="action-btn">
+                    <i class="ri-android-fill"></i> 下载 v2rayNG
+                </a>
+                <a href="https://github.com/SagerNet/sing-box/releases" target="_blank" class="action-btn">
+                    <i class="ri-box-3-fill"></i> 下载 Sing-box
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="btn btn-logout" onclick="logout()">
+                <i class="ri-shut-down-line"></i> 退出登录
+            </button>
+            <p style="font-size:0.75rem; color:#475569; margin-top:15px; font-family:monospace">UUID: ${uuid.substring(0,8)}***</p>
+        </div>
     </div>
+
+    <div id="toast"><i class="ri-check-line"></i> 复制成功</div>
+
     <script>
-        function copy(id) {
-            const el = document.getElementById(id);
+        // 生成二维码
+        new QRCode(document.getElementById("qrcode"), {
+            text: "${defaultSubLink}",
+            width: 140,
+            height: 140,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+
+        // 复制功能
+        function copyLink() {
+            const el = document.getElementById('subLink');
             el.select();
-            navigator.clipboard.writeText(el.value).then(() => alert('已复制'));
+            navigator.clipboard.writeText(el.value).then(() => {
+                showToast();
+            }).catch(() => {
+                alert('复制失败，请手动复制');
+            });
         }
+
+        // 登出功能
         function logout() {
-            document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-            location.reload();
+            if(confirm('确定要退出登录吗？')) {
+                document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+                location.reload();
+            }
         }
-    </script>
-</body>
-</html>`;
-}
 
-export default {
-  async fetch(r, env, ctx) {
-    try {
-      const url = new URL(r.url);
-      const host = url.hostname; 
-      const clientIP = r.headers.get('cf-connecting-ip');
-
-      // 加载变量
-      const _UUID = env.KEY ? await getDynamicUUID(env.KEY, env.UUID_REFRESH || 86400) : (await getSafeEnv(env, 'UUID', UUID));
-      const _WEB_PW = await getSafeEnv(env, 'WEB_PASSWORD', WEB_PASSWORD);
-      const _SUB_PW = await getSafeEnv(env, 'SUB_PASSWORD', SUB_PASSWORD);
-      const _PROXY_IP = await getSafeEnv(env, 'PROXYIP', DEFAULT_PROXY_IP);
-      const _PS = await getSafeEnv(env, 'PS', ""); 
-      
-      let _ROOT_REDIRECT_URL = await getSafeEnv(env, 'ROOT_REDIRECT_URL', ROOT_REDIRECT_URL);
-      if (_ROOT_REDIRECT_URL && !_ROOT_REDIRECT_URL.includes('://')) _ROOT_REDIRECT_URL = 'https://' + _ROOT_REDIRECT_URL;
-
-      // 身份鉴权 (用于面板访问)
-      let isAuthorized = false;
-      if (_WEB_PW) {
-        const cookie = r.headers.get('Cookie') || "";
-        const regex = new RegExp(`auth=${_WEB_PW.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(;|$)`);
-        if (regex.test(cookie)) isAuthorized = true;
-      }
-
-      if (url.pathname === '/favicon.ico') return new Response(null, { status: 404 });
-
-      // 根路径重定向
-      if (url.pathname === '/' && r.headers.get('Upgrade') !== 'websocket') {
-          if(_ROOT_REDIRECT_URL) return Response.redirect(_ROOT_REDIRECT_URL, 302);
-          // 如果没有重定向链接，且有密码，跳转到 admin
-          if(_WEB_PW) return Response.redirect(`https://${host}/admin`, 302);
-      }
-
-      // 🟢 订阅接口 (通过 Path 访问)
-      if (_SUB_PW && url.pathname === `/${_SUB_PW}`) {
-          const requestProxyIp = url.searchParams.get('proxyip') || _PROXY_IP;
-          const allIPs = await getCustomIPs(env);
-          const listText = genNodes(host, _UUID, requestProxyIp, allIPs, _PS);
-          return new Response(btoa(unescape(encodeURIComponent(listText))), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-
-      // 🟢 订阅接口 (通过 /sub 访问)
-      if (url.pathname === '/sub') {
-          const requestUUID = url.searchParams.get('uuid');
-          if (requestUUID !== _UUID) return new Response('Invalid UUID', { status: 403 });
-          
-          let proxyIp = url.searchParams.get('proxyip') || _PROXY_IP;
-          const allIPs = await getCustomIPs(env);
-          const listText = genNodes(host, _UUID, proxyIp, allIPs, _PS);
-          return new Response(btoa(unescape(encodeURIComponent(listText))), { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-
-      // 🟢 简易面板逻辑 (HTTP)
-      if (url.pathname === '/admin' && r.headers.get('Upgrade') !== 'websocket') {
-        const noCacheHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
-        if (_WEB_PW && !isAuthorized) {
-            return new Response(loginPage(), { status: 200, headers: noCacheHeaders });
-        }
-        return new Response(dashPage(host, _UUID, _PROXY_IP, _SUB_PW), { status: 200, headers: noCacheHeaders });
-      }
-      
-      // 🟣 代理逻辑 (WebSocket)
-      let proxyIPConfig = null;
-      if (url.pathname.includes('/proxyip=')) {
-        try {
-          const proxyParam = url.pathname.split('/proxyip=')[1].split('/')[0];
-          const [address, port] = await parseIP(proxyParam); 
-          proxyIPConfig = { address, port: +port }; 
-        } catch (e) {}
-      }
-
-      // 解析全局 ProxyIP 列表
-      const globalProxyIPs = await parseProxyList(_PROXY_IP);
-      const { 0: c, 1: s } = new WebSocketPair();
-      s.accept(); 
-      handle(s, proxyIPConfig, _UUID, globalProxyIPs); 
-      return new Response(null, { status: 101, webSocket: c });
-
-    } catch (err) {
-      return new Response(err.toString(), { status: 500 });
-    }
-  }
-};
-
-async function getCustomIPs(env) {
-    let ips = await getSafeEnv(env, 'ADD', "");
-    const addApi = await getSafeEnv(env, 'ADDAPI', "");
-    const addCsv = await getSafeEnv(env, 'ADDCSV', "");
-    
-    if (addApi) {
-        const urls = addApi.split('\n').filter(u => u.trim() !== "");
-        for (const url of urls) {
-            try { const res = await fetch(url.trim(), { headers: { 'User-Agent': 'Mozilla/5.0' } }); if (res.ok) { const text = await res.text(); ips += "\n" + text; } } catch (e) {}
-        }
-    }
-    
-    if (addCsv) {
-        const urls = addCsv.split('\n').filter(u => u.trim() !== "");
-        for (const url of urls) {
-            try { const res = await fetch(url.trim(), { headers: { 'User-Agent': 'Mozilla/5.0' } }); if (res.ok) { const text = await res.text(); const lines = text.split('\n'); for (let line of lines) { const parts = line.split(','); if (parts.length >= 2) ips += `\n${parts[0].trim()}:443#${parts[1].trim()}`; } } } catch (e) {}
-        }
-    }
-    return ips;
-}
-
-function genNodes(h, u, p, ipsText, ps = "") {
-    let l = ipsText.split('\n').filter(line => line.trim() !== "");
-    const cleanedProxyIP = p ? p.replace(/\n/g, ',') : '';
-    const P = cleanedProxyIP ? `/proxyip=${cleanedProxyIP.trim()}` : "/";
-    const E = encodeURIComponent(P);
-    return l.map(L => {
-        const [a, n] = L.split('#'); if (!a) return "";
-        const I = a.trim(); 
-        let N = n ? n.trim() : 'Worker-Node';
-        if (ps) N = `${N} ${ps}`;
-        let i = I, pt = "443"; if (I.includes(':') && !I.includes('[')) { const s = I.split(':'); i = s[0]; pt = s[1]; }
-        return `${PT_TYPE}://${u}@${i}:${pt}?encryption=none&security=tls&sni=${h}&alpn=h3&fp=random&allowInsecure=1&type=ws&host=${h}&path=${E}#${encodeURIComponent(N)}`
-    }).join('\n');
-}
+        // Toast 动画
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000
